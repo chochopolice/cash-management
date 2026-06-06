@@ -872,7 +872,6 @@ auth.onAuthStateChanged(user => {
     document.getElementById('auth-section').style.display = 'none';
     document.getElementById('main-nav').style.display = 'flex';
     document.getElementById('main-content').style.display = 'block';
-    // 表示名: email > 電話番号 > displayName の優先順
     const label = user.email || user.phoneNumber || user.displayName || 'ログイン中';
     document.getElementById('nav-user-info').textContent = label;
     initApp();
@@ -880,9 +879,16 @@ auth.onAuthStateChanged(user => {
     document.getElementById('auth-section').style.display = 'block';
     document.getElementById('main-nav').style.display = 'none';
     document.getElementById('main-content').style.display = 'none';
-    // 電話認証タブに戻ったときのためにreCAPTCHAをリセット
     recaptchaVerifier = null;
     phoneConfirmationResult = null;
+    // リダイレクト認証の結果を受け取る
+    auth.getRedirectResult().then(result => {
+      if (result && result.user) {
+        // 認証成功 — onAuthStateChanged が再度発火するので何もしなくてよい
+      }
+    }).catch(e => {
+      setAuthMsg(formatAuthError(e), 'error');
+    });
   }
 });
 
@@ -912,29 +918,25 @@ async function doSignUp() {
 
 // --- Google認証 ---
 async function doGoogleSignIn() {
-  setAuthMsg('');
+  setAuthMsg('Googleにリダイレクト中...');
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
   try {
-    await auth.signInWithPopup(provider);
+    await auth.signInWithRedirect(provider);
   } catch(e) {
-    if (e.code !== 'auth/popup-closed-by-user') {
-      setAuthMsg(formatAuthError(e), 'error');
-    }
+    setAuthMsg(formatAuthError(e), 'error');
   }
 }
 
 // --- Facebook認証 ---
 async function doFacebookSignIn() {
-  setAuthMsg('');
+  setAuthMsg('Facebookにリダイレクト中...');
   const provider = new firebase.auth.FacebookAuthProvider();
   provider.addScope('email');
   try {
-    await auth.signInWithPopup(provider);
+    await auth.signInWithRedirect(provider);
   } catch(e) {
-    if (e.code !== 'auth/popup-closed-by-user') {
-      setAuthMsg(formatAuthError(e), 'error');
-    }
+    setAuthMsg(formatAuthError(e), 'error');
   }
 }
 
