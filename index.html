@@ -432,6 +432,12 @@ tr:hover td { background: var(--surface2); }
   </div>
 </div>
 
+<!-- セラピスト用ログアウトバー（非管理者用） -->
+<div id="therapist-logout-bar" style="display:none;justify-content:flex-end;align-items:center;padding:8px 20px;background:var(--surface);border-bottom:1px solid var(--border);gap:12px">
+  <span style="font-size:13px;color:var(--text2)" id="therapist-login-label"></span>
+  <button class="btn btn-outline btn-sm" onclick="doSignOut()">ログアウト</button>
+</div>
+
 <!-- MAIN PAGES -->
 <main id="main-content" style="display:none">
 
@@ -709,7 +715,7 @@ tr:hover td { background: var(--surface2); }
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>日時</th><th>カテゴリ</th><th>金額</th><th>メモ</th></tr></thead>
+          <thead><tr><th>日時</th><th>種別</th><th>カテゴリ</th><th>セラピスト</th><th>金額</th><th>メモ</th></tr></thead>
           <tbody id="hist-expense-body"><tr><td colspan="4"><div class="empty-state"><p>期間を選択して検索してください</p></div></td></tr></tbody>
         </table>
       </div>
@@ -793,6 +799,19 @@ tr:hover td { background: var(--surface2); }
   <div class="modal">
     <div class="modal-title">経費追加</div>
     <div class="form-group">
+      <label class="form-label">経費の種別</label>
+      <select id="exp-owner-type" class="form-control" onchange="toggleExpOwner()">
+        <option value="office">事業所経費</option>
+        <option value="therapist">セラピスト個人経費</option>
+      </select>
+    </div>
+    <div class="form-group" id="exp-therapist-group" style="display:none">
+      <label class="form-label">セラピスト</label>
+      <select id="exp-therapist-id" class="form-control">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label class="form-label">カテゴリ</label>
       <select id="exp-category" class="form-control">
         <option value="ガソリン代">ガソリン代</option>
@@ -852,13 +871,33 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 // ============================================================
+// 管理者設定 — 管理者のメールアドレスまたはUIDを追加してください
+// ============================================================
+const ADMIN_EMAILS = [
+  // 例: "your-email@gmail.com",
+];
+const ADMIN_UIDS = [
+  // 例: "abc123xyz",
+];
+// ※ 両方空の場合は全員管理者（初期設定用）
+// ============================================================
+
+// ============================================================
 // STATE
 // ============================================================
 let currentUser = null;
+let currentUserIsAdmin = false;
 let therapists = [];
 let selectedTherapistForSales = null;
 let selectedTherapistForSalary = null;
 let ipadSelectedTherapist = null;
+
+function checkIsAdmin(user) {
+  if (ADMIN_EMAILS.length === 0 && ADMIN_UIDS.length === 0) return true;
+  if (user.email && ADMIN_EMAILS.includes(user.email)) return true;
+  if (ADMIN_UIDS.includes(user.uid)) return true;
+  return false;
+}
 
 // ============================================================
 // AUTH
@@ -869,12 +908,29 @@ let phoneConfirmationResult = null;
 auth.onAuthStateChanged(user => {
   currentUser = user;
   if (user) {
+    currentUserIsAdmin = checkIsAdmin(user);
     document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('main-nav').style.display = 'flex';
-    document.getElementById('main-content').style.display = 'block';
     const label = user.email || user.phoneNumber || user.displayName || 'ログイン中';
-    document.getElementById('nav-user-info').textContent = label;
-    initApp();
+
+    if (currentUserIsAdmin) {
+      // 管理者：フル画面を表示
+      document.getElementById('main-nav').style.display = 'flex';
+      document.getElementById('main-content').style.display = 'block';
+      document.getElementById('nav-user-info').textContent = '👑 ' + label;
+      initApp();
+    } else {
+      // 非管理者：iPad画面のみ表示
+      document.getElementById('main-nav').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+      // iPad画面だけ見せる
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-ipad').classList.add('active');
+      loadTherapists().then(() => {
+        renderIpadTherapistGrid();
+      });
+      // ログアウトボタンだけ表示
+      document.getElementById('therapist-logout-bar').style.display = 'flex';
+    }
   } else {
     document.getElementById('auth-section').style.display = 'block';
     document.getElementById('main-nav').style.display = 'none';
@@ -1179,8 +1235,7 @@ async function registerSales() {
   const paymentStatus = document.getElementById('sales-payment-status').value;
 
   try {
-    await db.collection('transactions').add({
-      type: 'sales',
+    await db.collection('sales').add({
       therapistId: selectedTherapistForSales.id,
       therapistName: selectedTherapistForSales.name,
       amount,
@@ -1210,8 +1265,7 @@ async function registerSalary() {
   const memo = document.getElementById('salary-memo').value;
 
   try {
-    await db.collection('transactions').add({
-      type: 'salary',
+    await db.collection('salaries').add({
       therapistId: selectedTherapistForSalary.id,
       therapistName: selectedTherapistForSalary.name,
       amount,
@@ -1238,7 +1292,18 @@ function openAddExpenseModal() {
   document.getElementById('exp-memo').value = '';
   document.getElementById('exp-category').value = 'ガソリン代';
   document.getElementById('exp-custom-group').style.display = 'none';
+  document.getElementById('exp-owner-type').value = 'office';
+  document.getElementById('exp-therapist-group').style.display = 'none';
+  // セラピストセレクトを最新状態に
+  const sel = document.getElementById('exp-therapist-id');
+  sel.innerHTML = '<option value="">選択してください</option>' +
+    therapists.filter(t=>t.active!==false).map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
   document.getElementById('modal-add-expense').classList.add('open');
+}
+
+function toggleExpOwner() {
+  const type = document.getElementById('exp-owner-type').value;
+  document.getElementById('exp-therapist-group').style.display = type === 'therapist' ? 'block' : 'none';
 }
 
 async function saveExpense() {
@@ -1250,9 +1315,20 @@ async function saveExpense() {
   const amount = parseInt(document.getElementById('exp-amount').value);
   if (!amount || amount <= 0) { showToast('金額を入力してください', 'error'); return; }
   const memo = document.getElementById('exp-memo').value;
+  const ownerType = document.getElementById('exp-owner-type').value;
+  const therapistId = ownerType === 'therapist' ? document.getElementById('exp-therapist-id').value : '';
+  const therapistName = ownerType === 'therapist'
+    ? (therapists.find(t=>t.id===therapistId)?.name || '')
+    : '';
+  if (ownerType === 'therapist' && !therapistId) {
+    showToast('セラピストを選択してください', 'error'); return;
+  }
 
   try {
-    await db.collection('expenses').add({ category, amount, memo, date: new Date(), createdAt: new Date() });
+    await db.collection('expenses').add({
+      category, amount, memo, ownerType, therapistId, therapistName,
+      date: new Date(), createdAt: new Date()
+    });
     closeModal('modal-add-expense');
     showToast(`経費 ¥${amount.toLocaleString()} を登録しました`, 'success');
     loadExpenses();
@@ -1292,9 +1368,14 @@ async function loadExpenses() {
   }
   tbody.innerHTML = all.map(e => {
     const d = e.date.toDate ? e.date.toDate() : new Date(e.date);
+    const ownerBadge = e.ownerType === 'therapist'
+      ? `<span class="badge badge-info">個人</span>`
+      : `<span class="badge badge-warning">事業所</span>`;
     return `<tr>
       <td>${d.toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
-      <td><span class="badge badge-warning">${e.category}</span></td>
+      <td>${ownerBadge}</td>
+      <td><span class="badge" style="background:rgba(243,156,18,0.15);color:var(--warning)">${e.category}</span></td>
+      <td class="text-muted">${e.therapistName||'—'}</td>
       <td class="text-danger font-mono">-¥${e.amount.toLocaleString()}</td>
       <td class="text-muted">${e.memo||''}</td>
       <td><button class="btn btn-outline btn-sm" onclick="deleteExpense('${e.id}')">削除</button></td>
@@ -1316,18 +1397,17 @@ async function loadDashboard() {
   const today = new Date(); today.setHours(0,0,0,0);
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
 
-  const snap = await db.collection('transactions')
-    .where('date', '>=', today)
-    .where('date', '<', tomorrow)
-    .get();
-  const txs = snap.docs.map(d => d.data());
+  const [salesSnap, salariesSnap, expSnap] = await Promise.all([
+    db.collection('sales').where('date','>=',today).where('date','<',tomorrow).get(),
+    db.collection('salaries').where('date','>=',today).where('date','<',tomorrow).get(),
+    db.collection('expenses').where('date','>=',today).where('date','<',tomorrow).get(),
+  ]);
+  const salesDocs = salesSnap.docs.map(d=>d.data());
+  const salaryDocs = salariesSnap.docs.map(d=>d.data());
 
-  const sales = txs.filter(t=>t.type==='sales').reduce((s,t)=>s+t.amount,0);
-  const income = txs.filter(t=>t.type==='sales'&&t.paymentStatus==='paid').reduce((s,t)=>s+t.amount,0);
-  const salary = txs.filter(t=>t.type==='salary').reduce((s,t)=>s+t.amount,0);
-
-  const expSnap = await db.collection('expenses')
-    .where('date','>=',today).where('date','<',tomorrow).get();
+  const sales = salesDocs.reduce((s,t)=>s+t.amount,0);
+  const income = salesDocs.filter(t=>t.paymentStatus==='paid').reduce((s,t)=>s+t.amount,0);
+  const salary = salaryDocs.reduce((s,t)=>s+t.amount,0);
   const expenses = expSnap.docs.reduce((s,d)=>s+d.data().amount,0);
 
   const balance = income - salary - expenses;
@@ -1340,7 +1420,7 @@ async function loadDashboard() {
 
   // Top therapists
   const byTherapist = {};
-  txs.filter(t=>t.type==='sales').forEach(t => {
+  salesDocs.forEach(t => {
     byTherapist[t.therapistName] = (byTherapist[t.therapistName]||0)+t.amount;
   });
   const sorted = Object.entries(byTherapist).sort((a,b)=>b[1]-a[1]);
@@ -1356,18 +1436,25 @@ async function loadDashboard() {
     `).join('');
   }
 
-  // Recent transactions
-  const recent = txs.slice(-5).reverse();
+  // Recent transactions (sales + salaries 合わせて最新5件)
+  const allRecent = [
+    ...salesDocs.map(t=>({...t,_kind:'売上'})),
+    ...salaryDocs.map(t=>({...t,_kind:'給料'}))
+  ].sort((a,b)=>{
+    const da = a.date.toDate?a.date.toDate():new Date(a.date);
+    const db_ = b.date.toDate?b.date.toDate():new Date(b.date);
+    return db_-da;
+  }).slice(0,5);
   const recentEl = document.getElementById('dash-recent-transactions');
-  if (!recent.length) {
+  if (!allRecent.length) {
     recentEl.innerHTML = '<div class="empty-state"><p>取引なし</p></div>';
   } else {
-    recentEl.innerHTML = recent.map(t => {
+    recentEl.innerHTML = allRecent.map(t => {
       const d = t.date.toDate ? t.date.toDate() : new Date(t.date);
-      const typeLabel = {sales:'売上',salary:'給料',income:'入金'}[t.type]||t.type;
-      const cls = t.type==='salary'?'text-warning':'text-success';
+      const cls = t._kind==='給料'?'text-warning':'text-success';
+      const badgeCls = t._kind==='給料'?'badge-warning':'badge-info';
       return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-        <span><span class="text-muted text-sm">${d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}</span>　${t.therapistName||''}　<span class="badge badge-info">${typeLabel}</span></span>
+        <span><span class="text-muted text-sm">${d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}</span>　${t.therapistName||''}　<span class="badge ${badgeCls}">${t._kind}</span></span>
         <span class="font-mono ${cls}">¥${t.amount.toLocaleString()}</span>
       </div>`;
     }).join('');
@@ -1381,18 +1468,18 @@ async function loadClosingData() {
   const today = new Date(); today.setHours(0,0,0,0);
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
 
-  const snap = await db.collection('transactions')
-    .where('date','>=',today).where('date','<',tomorrow)
-    .orderBy('date').get();
-  const txs = snap.docs.map(d=>d.data());
+  const [salesSnap2, salariesSnap2, expSnap2] = await Promise.all([
+    db.collection('sales').where('date','>=',today).where('date','<',tomorrow).orderBy('date').get(),
+    db.collection('salaries').where('date','>=',today).where('date','<',tomorrow).orderBy('date').get(),
+    db.collection('expenses').where('date','>=',today).where('date','<',tomorrow).get(),
+  ]);
+  const salesDocs2 = salesSnap2.docs.map(d=>({...d.data(),_kind:'sales'}));
+  const salaryDocs2 = salariesSnap2.docs.map(d=>({...d.data(),_kind:'salary'}));
+  const exps = expSnap2.docs.map(d=>({id:d.id,...d.data()}));
 
-  const expSnap = await db.collection('expenses')
-    .where('date','>=',today).where('date','<',tomorrow).get();
-  const exps = expSnap.docs.map(d=>d.data());
-
-  const sales = txs.filter(t=>t.type==='sales').reduce((s,t)=>s+t.amount,0);
-  const income = txs.filter(t=>t.type==='sales'&&t.paymentStatus==='paid').reduce((s,t)=>s+t.amount,0);
-  const salary = txs.filter(t=>t.type==='salary').reduce((s,t)=>s+t.amount,0);
+  const sales = salesDocs2.reduce((s,t)=>s+t.amount,0);
+  const income = salesDocs2.filter(t=>t.paymentStatus==='paid').reduce((s,t)=>s+t.amount,0);
+  const salary = salaryDocs2.reduce((s,t)=>s+t.amount,0);
   const expenses = exps.reduce((s,e)=>s+e.amount,0);
   const balance = income - salary - expenses;
 
@@ -1405,7 +1492,8 @@ async function loadClosingData() {
 
   const tbody = document.getElementById('closing-table-body');
   const allItems = [
-    ...txs.map(t => ({ ...t, _type:'tx' })),
+    ...salesDocs2.map(t => ({ ...t, _type:'tx' })),
+    ...salaryDocs2.map(t => ({ ...t, _type:'tx' })),
     ...exps.map(e => ({ ...e, _type:'exp' }))
   ].sort((a,b) => {
     const da = a.date.toDate ? a.date.toDate() : new Date(a.date);
@@ -1430,12 +1518,13 @@ async function loadClosingData() {
       </tr>`;
     }
     const typeMap = {sales:'売上',salary:'給料'};
-    const cls = item.type==='salary'?'text-warning':'text-success';
-    const prefix = item.type==='salary'?'-':'';
-    const badgeCls = item.type==='salary'?'badge-warning':'badge-info';
+    const cls = item._kind==='salary'?'text-warning':'text-success';
+    const prefix = item._kind==='salary'?'-':'';
+    const badgeCls = item._kind==='salary'?'badge-warning':'badge-info';
+    const typeLabel = item._kind==='salary'?'給料':'売上';
     return `<tr>
       <td>${timeStr}</td>
-      <td><span class="badge ${badgeCls}">${typeMap[item.type]||item.type}</span></td>
+      <td><span class="badge ${badgeCls}">${typeLabel}</span></td>
       <td>${item.therapistName||''}</td>
       <td class="${cls} font-mono">${prefix}¥${item.amount.toLocaleString()}</td>
       <td class="text-muted">${item.memo||''}</td>
@@ -1446,16 +1535,15 @@ async function loadClosingData() {
 async function doClosing() {
   if (!confirm('日締めを実行しますか？')) return;
   const today = new Date(); today.setHours(0,0,0,0);
-  const snap = await db.collection('transactions')
-    .where('date','>=',today).get();
-  const txs = snap.docs.map(d=>d.data());
-  const expSnap = await db.collection('expenses').where('date','>=',today).get();
-  const exps = expSnap.docs.map(d=>d.data());
-
-  const sales = txs.filter(t=>t.type==='sales').reduce((s,t)=>s+t.amount,0);
-  const income = txs.filter(t=>t.type==='sales'&&t.paymentStatus==='paid').reduce((s,t)=>s+t.amount,0);
-  const salary = txs.filter(t=>t.type==='salary').reduce((s,t)=>s+t.amount,0);
-  const expenses = exps.reduce((s,e)=>s+e.amount,0);
+  const [cs, csal, cexp] = await Promise.all([
+    db.collection('sales').where('date','>=',today).get(),
+    db.collection('salaries').where('date','>=',today).get(),
+    db.collection('expenses').where('date','>=',today).get(),
+  ]);
+  const sales = cs.docs.reduce((s,d)=>s+d.data().amount,0);
+  const income = cs.docs.filter(d=>d.data().paymentStatus==='paid').reduce((s,d)=>s+d.data().amount,0);
+  const salary = csal.docs.reduce((s,d)=>s+d.data().amount,0);
+  const expenses = cexp.docs.reduce((s,d)=>s+d.data().amount,0);
 
   await db.collection('closings').add({
     date: today, sales, income, salary, expenses,
@@ -1509,26 +1597,42 @@ function switchHistoryTab(tab, el) {
 async function loadTherapistHistory() {
   const tid = document.getElementById('hist-therapist-select').value;
   if (!tid) return;
-  const snap = await db.collection('transactions')
-    .where('therapistId','==',tid)
-    .orderBy('date','desc').limit(100).get();
-  const txs = snap.docs.map(d=>d.data());
   const tbody = document.getElementById('hist-therapist-body');
-  if (!txs.length) {
+  tbody.innerHTML = '<tr><td colspan="5"><div class="loading"><div class="spinner"></div>読み込み中...</div></td></tr>';
+
+  const [sSnap, salSnap, expSnap] = await Promise.all([
+    db.collection('sales').where('therapistId','==',tid).orderBy('date','desc').limit(100).get(),
+    db.collection('salaries').where('therapistId','==',tid).orderBy('date','desc').limit(100).get(),
+    db.collection('expenses').where('therapistId','==',tid).orderBy('date','desc').limit(100).get(),
+  ]);
+
+  const rows = [
+    ...sSnap.docs.map(d=>({...d.data(),_kind:'sales'})),
+    ...salSnap.docs.map(d=>({...d.data(),_kind:'salary'})),
+    ...expSnap.docs.map(d=>({...d.data(),_kind:'expense'})),
+  ].sort((a,b)=>{
+    const da=a.date.toDate?a.date.toDate():new Date(a.date);
+    const db_=b.date.toDate?b.date.toDate():new Date(b.date);
+    return db_-da;
+  });
+
+  if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>データなし</p></div></td></tr>';
     return;
   }
-  tbody.innerHTML = txs.map(t => {
+  tbody.innerHTML = rows.map(t => {
     const d = t.date.toDate ? t.date.toDate() : new Date(t.date);
-    const typeMap = {sales:'売上',salary:'給料'};
-    const cls = t.type==='salary'?'text-warning':'text-success';
-    const badgeCls = t.type==='salary'?'badge-warning':'badge-info';
-    const statusBadge = t.paymentStatus==='paid'?'<span class="badge badge-success">入金済</span>':'<span class="badge badge-danger">未入金</span>';
+    const kindMap = {sales:'売上',salary:'給料',expense:'経費'};
+    const cls = t._kind==='salary'?'text-warning':t._kind==='expense'?'text-danger':'text-success';
+    const badgeCls = t._kind==='salary'?'badge-warning':t._kind==='expense'?'badge-danger':'badge-info';
+    const statusBadge = t._kind==='sales'
+      ? (t.paymentStatus==='paid'?'<span class="badge badge-success">入金済</span>':'<span class="badge badge-danger">未入金</span>')
+      : '';
     return `<tr>
       <td>${d.toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
-      <td><span class="badge ${badgeCls}">${typeMap[t.type]||t.type}</span></td>
+      <td><span class="badge ${badgeCls}">${kindMap[t._kind]}</span></td>
       <td class="${cls} font-mono">¥${t.amount.toLocaleString()}</td>
-      <td>${t.type==='sales'?statusBadge:''}</td>
+      <td>${statusBadge}</td>
       <td class="text-muted">${t.memo||''}</td>
     </tr>`;
   }).join('');
@@ -1539,24 +1643,34 @@ async function loadDailyHistory() {
   if (!dateStr) return;
   const start = new Date(dateStr); start.setHours(0,0,0,0);
   const end = new Date(start); end.setDate(end.getDate()+1);
-  const snap = await db.collection('transactions')
-    .where('date','>=',start).where('date','<',end)
-    .orderBy('date').get();
-  const txs = snap.docs.map(d=>d.data());
+  const [ds, dsal, dexp] = await Promise.all([
+    db.collection('sales').where('date','>=',start).where('date','<',end).orderBy('date').get(),
+    db.collection('salaries').where('date','>=',start).where('date','<',end).orderBy('date').get(),
+    db.collection('expenses').where('date','>=',start).where('date','<',end).orderBy('date').get(),
+  ]);
+  const dRows = [
+    ...ds.docs.map(d=>({...d.data(),_kind:'sales'})),
+    ...dsal.docs.map(d=>({...d.data(),_kind:'salary'})),
+    ...dexp.docs.map(d=>({...d.data(),_kind:'expense'})),
+  ].sort((a,b)=>{
+    const da=a.date.toDate?a.date.toDate():new Date(a.date);
+    const db_=b.date.toDate?b.date.toDate():new Date(b.date);
+    return da-db_;
+  });
   const tbody = document.getElementById('hist-daily-body');
-  if (!txs.length) {
+  if (!dRows.length) {
     tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>データなし</p></div></td></tr>';
     return;
   }
-  tbody.innerHTML = txs.map(t => {
+  tbody.innerHTML = dRows.map(t => {
     const d = t.date.toDate ? t.date.toDate() : new Date(t.date);
-    const typeMap = {sales:'売上',salary:'給料'};
-    const cls = t.type==='salary'?'text-warning':'text-success';
-    const badgeCls = t.type==='salary'?'badge-warning':'badge-info';
+    const kindMap = {sales:'売上',salary:'給料',expense:'経費'};
+    const cls = t._kind==='salary'?'text-warning':t._kind==='expense'?'text-danger':'text-success';
+    const badgeCls = t._kind==='salary'?'badge-warning':t._kind==='expense'?'badge-danger':'badge-info';
     return `<tr>
       <td>${d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}</td>
-      <td><span class="badge ${badgeCls}">${typeMap[t.type]||t.type}</span></td>
-      <td>${t.therapistName||''}</td>
+      <td><span class="badge ${badgeCls}">${kindMap[t._kind]}</span></td>
+      <td>${t.therapistName||t.category||''}</td>
       <td class="${cls} font-mono">¥${t.amount.toLocaleString()}</td>
       <td class="text-muted">${t.memo||''}</td>
     </tr>`;
@@ -1577,9 +1691,14 @@ async function loadExpenseHistory() {
   }
   tbody.innerHTML = exps.map(e => {
     const d = e.date.toDate ? e.date.toDate() : new Date(e.date);
+    const ownerBadge = e.ownerType === 'therapist'
+      ? `<span class="badge badge-info">個人</span>`
+      : `<span class="badge badge-warning">事業所</span>`;
     return `<tr>
       <td>${d.toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
-      <td><span class="badge badge-warning">${e.category}</span></td>
+      <td>${ownerBadge}</td>
+      <td><span class="badge" style="background:rgba(243,156,18,0.15);color:var(--warning)">${e.category}</span></td>
+      <td class="text-muted">${e.therapistName||'—'}</td>
       <td class="text-danger font-mono">-¥${e.amount.toLocaleString()}</td>
       <td class="text-muted">${e.memo||''}</td>
     </tr>`;
@@ -1600,16 +1719,16 @@ async function ipadSelectTherapist(id, name) {
 async function loadIpadData(id) {
   const today = new Date(); today.setHours(0,0,0,0);
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
-  const snap = await db.collection('transactions')
-    .where('therapistId','==',id)
-    .where('date','>=',today).where('date','<',tomorrow).get();
-  const txs = snap.docs.map(d=>d.data());
-  const sales = txs.filter(t=>t.type==='sales').reduce((s,t)=>s+t.amount,0);
-  const salary = txs.filter(t=>t.type==='salary').reduce((s,t)=>s+t.amount,0);
-  document.getElementById('ipad-my-sales').textContent = '¥'+sales.toLocaleString();
-  document.getElementById('ipad-my-salary').textContent = '¥'+salary.toLocaleString();
+  const [iSales, iSal] = await Promise.all([
+    db.collection('sales').where('therapistId','==',id).where('date','>=',today).where('date','<',tomorrow).get(),
+    db.collection('salaries').where('therapistId','==',id).where('date','>=',today).where('date','<',tomorrow).get(),
+  ]);
+  const salesTotal = iSales.docs.reduce((s,d)=>s+d.data().amount,0);
+  const salaryTotal = iSal.docs.reduce((s,d)=>s+d.data().amount,0);
+  document.getElementById('ipad-my-sales').textContent = '¥'+salesTotal.toLocaleString();
+  document.getElementById('ipad-my-salary').textContent = '¥'+salaryTotal.toLocaleString();
 
-  const paid = txs.some(t=>t.type==='sales'&&t.paymentStatus==='paid');
+  const paid = iSales.docs.some(d=>d.data().paymentStatus==='paid');
   document.getElementById('ipad-payment-badge').innerHTML =
     paid ? '<span class="badge badge-success">入金済み</span>' : '<span class="badge badge-danger">未入金</span>';
   document.getElementById('ipad-btn-start').style.display = paid ? 'none' : 'block';
@@ -1626,10 +1745,9 @@ async function ipadCompletePayment() {
   if (!ipadSelectedTherapist) return;
   const today = new Date(); today.setHours(0,0,0,0);
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
-  const snap = await db.collection('transactions')
+  const snap = await db.collection('sales')
     .where('therapistId','==',ipadSelectedTherapist.id)
-    .where('date','>=',today).where('date','<',tomorrow)
-    .where('type','==','sales').get();
+    .where('date','>=',today).where('date','<',tomorrow).get();
   const batch = db.batch();
   snap.docs.forEach(doc => {
     batch.update(doc.ref, { paymentStatus: 'paid' });
