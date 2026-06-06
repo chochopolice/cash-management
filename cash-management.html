@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>現金管理システム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --surface3: #2a2f47;
+  --accent: #4f8ef7;
+  --accent2: #7c5cfc;
+  --success: #2ecc71;
+  --warning: #f39c12;
+  --danger: #e74c3c;
+  --text: #e8eaf0;
+  --text2: #8b90a8;
+  --text3: #555b7a;
+  --border: #2e3452;
+  --radius: 8px;
+  --radius-lg: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+}
+a { color: inherit; text-decoration: none; }
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 20px; height: 56px; gap: 4px;
+}
+.nav-brand {
+  font-family: 'Oswald', sans-serif;
+  font-size: 18px; font-weight: 600;
+  color: var(--accent);
+  margin-right: 24px;
+  letter-spacing: 1px;
+}
+.nav-btn {
+  background: none; border: none;
+  color: var(--text2);
+  padding: 6px 14px; border-radius: var(--radius);
+  cursor: pointer; font-family: inherit; font-size: 13px;
+  transition: all 0.15s;
+}
+.nav-btn:hover { background: var(--surface2); color: var(--text); }
+.nav-btn.active { background: var(--accent); color: #fff; }
+.nav-spacer { flex: 1; }
+.nav-user {
+  font-size: 12px; color: var(--text3);
+  background: var(--surface2);
+  padding: 4px 12px; border-radius: 20px;
+}
+
+/* AUTH SECTION */
+#auth-section {
+  max-width: 440px; margin: 80px auto; padding: 0 20px;
+}
+.auth-card {
+  background: var(--surface); border-radius: var(--radius-lg);
+  border: 1px solid var(--border); padding: 40px;
+}
+.auth-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 28px; font-weight: 600;
+  color: var(--accent); text-align: center;
+  margin-bottom: 8px;
+}
+.auth-sub { text-align: center; color: var(--text2); margin-bottom: 32px; font-size: 13px; }
+
+/* MAIN */
+main { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* PAGE HEADER */
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px;
+}
+.page-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 24px; font-weight: 600; color: var(--text);
+}
+
+/* CARDS */
+.card {
+  background: var(--surface); border-radius: var(--radius-lg);
+  border: 1px solid var(--border); padding: 20px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 13px; font-weight: 500;
+  color: var(--text2); margin-bottom: 16px;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 500px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+/* METRIC CARDS */
+.metric-card {
+  background: var(--surface2); border-radius: var(--radius);
+  padding: 16px 20px;
+}
+.metric-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.6px; }
+.metric-value { font-family: 'Oswald', sans-serif; font-size: 26px; font-weight: 600; color: var(--text); }
+.metric-value.success { color: var(--success); }
+.metric-value.warning { color: var(--warning); }
+.metric-value.danger { color: var(--danger); }
+.metric-value.accent { color: var(--accent); }
+
+/* FORMS */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+.form-control {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 10px 14px;
+  font-family: inherit; font-size: 14px;
+  transition: border-color 0.15s;
+}
+.form-control:focus { outline: none; border-color: var(--accent); }
+.form-control option { background: var(--surface2); }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border-radius: var(--radius);
+  border: none; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  transition: all 0.15s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #3a75e0; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #27ae60; }
+.btn-warning { background: var(--warning); color: #fff; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-outline {
+  background: none; border: 1px solid var(--border);
+  color: var(--text2);
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+
+/* TABLE */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  text-align: left; padding: 10px 14px;
+  font-size: 11px; font-weight: 500;
+  color: var(--text3); text-transform: uppercase; letter-spacing: 0.6px;
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+
+/* BADGE */
+.badge {
+  display: inline-block; padding: 3px 10px;
+  border-radius: 20px; font-size: 11px; font-weight: 500;
+}
+.badge-success { background: rgba(46,204,113,0.15); color: var(--success); }
+.badge-warning { background: rgba(243,156,18,0.15); color: var(--warning); }
+.badge-danger { background: rgba(231,76,60,0.15); color: var(--danger); }
+.badge-info { background: rgba(79,142,247,0.15); color: var(--accent); }
+
+/* SEPARATOR */
+.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+/* THERAPIST CARD */
+.therapist-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.therapist-card {
+  background: var(--surface2); border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 16px;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.therapist-card:hover { border-color: var(--accent); }
+.therapist-card.selected { border-color: var(--accent); background: rgba(79,142,247,0.1); }
+.therapist-card.inactive { opacity: 0.5; }
+.t-name { font-weight: 500; font-size: 15px; }
+.t-meta { font-size: 11px; color: var(--text3); }
+.t-sales { font-family: 'Oswald', sans-serif; font-size: 20px; color: var(--success); }
+
+/* IPAD VIEW */
+#ipad-view {
+  max-width: 400px; margin: 0 auto;
+  background: var(--surface); border-radius: var(--radius-lg);
+  border: 1px solid var(--border); overflow: hidden;
+}
+.ipad-header {
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  padding: 24px 20px;
+  text-align: center;
+}
+.ipad-header h2 { font-size: 20px; font-weight: 600; color: #fff; }
+.ipad-header p { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 4px; }
+.ipad-body { padding: 20px; }
+.ipad-metric {
+  background: var(--surface2); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ipad-metric-label { font-size: 12px; color: var(--text2); }
+.ipad-metric-value { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 600; }
+.ipad-btn {
+  width: 100%; padding: 16px;
+  border-radius: var(--radius); border: none;
+  font-family: inherit; font-size: 16px; font-weight: 600;
+  cursor: pointer; margin-bottom: 10px;
+  transition: all 0.15s;
+}
+.ipad-btn-primary { background: var(--accent); color: #fff; }
+.ipad-btn-success { background: var(--success); color: #fff; }
+.therapist-select-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.therapist-select-item {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  text-align: center; cursor: pointer;
+  transition: all 0.15s; font-weight: 500;
+}
+.therapist-select-item:hover { border-color: var(--accent); color: var(--accent); }
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  font-size: 14px; color: var(--text);
+  transform: translateY(80px); opacity: 0;
+  transition: all 0.3s;
+  max-width: 320px;
+  pointer-events: none;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { border-color: var(--success); }
+#toast.error { border-color: var(--danger); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  display: none;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 28px; width: 100%; max-width: 480px;
+  margin: 20px;
+}
+.modal-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+
+/* RT300 NOTICE */
+.rt300-notice {
+  background: rgba(124,92,252,0.1); border: 1px solid rgba(124,92,252,0.3);
+  border-radius: var(--radius); padding: 12px 16px;
+  font-size: 12px; color: #a78bf6; margin-bottom: 16px;
+}
+
+/* LOADING */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px; color: var(--text3);
+}
+.spinner {
+  width: 24px; height: 24px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TABS */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 16px; border-radius: var(--radius);
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer; font-size: 13px;
+  transition: all 0.15s;
+}
+.tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* EMPTY STATE */
+.empty-state {
+  text-align: center; padding: 40px 20px;
+  color: var(--text3);
+}
+.empty-state p { font-size: 14px; }
+
+/* UTIL */
+.flex { display: flex; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
+.text-muted { color: var(--text2); }
+.text-sm { font-size: 12px; }
+.font-mono { font-family: 'Oswald', sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="main-nav" style="display:none">
+  <div class="nav-brand">💴 CashMGR</div>
+  <button class="nav-btn active" onclick="showPage('dashboard')" id="nav-dashboard">ダッシュボード</button>
+  <button class="nav-btn" onclick="showPage('therapists')" id="nav-therapists">セラピスト</button>
+  <button class="nav-btn" onclick="showPage('sales')" id="nav-sales">売上登録</button>
+  <button class="nav-btn" onclick="showPage('salary')" id="nav-salary">給料登録</button>
+  <button class="nav-btn" onclick="showPage('expenses')" id="nav-expenses">経費</button>
+  <button class="nav-btn" onclick="showPage('closing')" id="nav-closing">日締め</button>
+  <button class="nav-btn" onclick="showPage('history')" id="nav-history">履歴</button>
+  <button class="nav-btn" onclick="showPage('ipad')" id="nav-ipad">📱 iPad画面</button>
+  <div class="nav-spacer"></div>
+  <div class="nav-user" id="nav-user-info">---</div>
+  <button class="nav-btn btn-sm" onclick="doSignOut()" style="margin-left:8px">ログアウト</button>
+</nav>
+
+<!-- AUTH SECTION -->
+<div id="auth-section">
+  <div class="auth-card">
+    <div class="auth-title">CashMGR</div>
+    <div class="auth-sub">マッサージ派遣 現金管理システム</div>
+    <div class="form-group">
+      <label class="form-label">メールアドレス</label>
+      <input type="email" id="auth-email" class="form-control" placeholder="admin@example.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">パスワード</label>
+      <input type="password" id="auth-password" class="form-control" placeholder="••••••••">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-primary" style="flex:1" onclick="doSignIn()">ログイン</button>
+      <button class="btn btn-outline" style="flex:1" onclick="doSignUp()">新規登録</button>
+    </div>
+    <div id="auth-msg" style="margin-top:14px;font-size:13px;text-align:center;color:var(--text2)"></div>
+    <hr class="sep">
+    <div style="font-size:12px;color:var(--text3);text-align:center">
+      ※ 初回はメールとパスワードを入力して「新規登録」を押してください<br>
+      Firebaseプロジェクト設定が必要です（下記参照）
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <div class="card-title">🔧 Firebase設定</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7">
+      このファイル内の <code style="color:var(--accent)">firebaseConfig</code> を<br>
+      ご自身のFirebaseプロジェクトの設定に書き換えてください。<br><br>
+      <strong>必要なFirebaseサービス：</strong><br>
+      • Authentication（メール/パスワード）<br>
+      • Firestore Database<br><br>
+      <a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent)">→ Firebaseコンソール</a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN PAGES -->
+<main id="main-content" style="display:none">
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div class="page-header">
+    <div class="page-title">ダッシュボード</div>
+    <div class="text-muted text-sm" id="today-date"></div>
+  </div>
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="metric-card">
+      <div class="metric-label">本日売上</div>
+      <div class="metric-value accent" id="dash-sales">¥0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">入金合計</div>
+      <div class="metric-value success" id="dash-income">¥0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">報酬支払</div>
+      <div class="metric-value warning" id="dash-salary">¥0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">現金残高</div>
+      <div class="metric-value" id="dash-balance">¥0</div>
+    </div>
+  </div>
+  <div class="rt300-notice">
+    🔌 <strong>Glory RT-300 連携予定</strong> — 入金・出金・残高の自動取得、理論残高との照合、差額警告機能を将来実装予定です。
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">本日の売上上位</div>
+      <div id="dash-top-therapists">
+        <div class="empty-state"><p>データなし</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">最近の取引</div>
+      <div id="dash-recent-transactions">
+        <div class="empty-state"><p>取引なし</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THERAPISTS -->
+<div id="page-therapists" class="page">
+  <div class="page-header">
+    <div class="page-title">セラピスト管理</div>
+    <button class="btn btn-primary" onclick="openAddTherapistModal()">＋ 新規登録</button>
+  </div>
+  <div id="therapist-list-container">
+    <div class="loading"><div class="spinner"></div>読み込み中...</div>
+  </div>
+</div>
+
+<!-- SALES -->
+<div id="page-sales" class="page">
+  <div class="page-header">
+    <div class="page-title">売上登録</div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">セラピスト選択</div>
+      <div id="sales-therapist-select">
+        <div class="loading"><div class="spinner"></div>読み込み中...</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">売上入力</div>
+      <div class="form-group">
+        <label class="form-label">選択中のセラピスト</label>
+        <div id="sales-selected-name" style="padding:10px 14px;background:var(--surface2);border-radius:var(--radius);color:var(--text2)">未選択</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">売上金額</label>
+        <input type="number" id="sales-amount" class="form-control" placeholder="0" step="500">
+      </div>
+      <div class="form-group">
+        <label class="form-label">メモ（任意）</label>
+        <input type="text" id="sales-memo" class="form-control" placeholder="コース名など">
+      </div>
+      <div class="form-group">
+        <label class="form-label">入金状況</label>
+        <select id="sales-payment-status" class="form-control">
+          <option value="pending">未入金</option>
+          <option value="paid">入金済み</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="registerSales()">売上を登録</button>
+    </div>
+  </div>
+</div>
+
+<!-- SALARY -->
+<div id="page-salary" class="page">
+  <div class="page-header">
+    <div class="page-title">給料登録</div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">セラピスト選択</div>
+      <div id="salary-therapist-select">
+        <div class="loading"><div class="spinner"></div>読み込み中...</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">給料入力</div>
+      <div class="form-group">
+        <label class="form-label">選択中のセラピスト</label>
+        <div id="salary-selected-name" style="padding:10px 14px;background:var(--surface2);border-radius:var(--radius);color:var(--text2)">未選択</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">給料金額</label>
+        <input type="number" id="salary-amount" class="form-control" placeholder="0" step="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">支払方法</label>
+        <select id="salary-method" class="form-control">
+          <option value="cash">現金</option>
+          <option value="transfer">振込</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">メモ（任意）</label>
+        <input type="text" id="salary-memo" class="form-control" placeholder="備考など">
+      </div>
+      <button class="btn btn-warning" style="width:100%" onclick="registerSalary()">給料を登録</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPENSES -->
+<div id="page-expenses" class="page">
+  <div class="page-header">
+    <div class="page-title">経費管理</div>
+    <button class="btn btn-primary" onclick="openAddExpenseModal()">＋ 経費追加</button>
+  </div>
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="metric-card">
+      <div class="metric-label">本日合計</div>
+      <div class="metric-value danger" id="exp-today-total">¥0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">今月合計</div>
+      <div class="metric-value" id="exp-month-total">¥0</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">経費履歴</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>日時</th><th>カテゴリ</th><th>金額</th><th>メモ</th><th></th></tr>
+        </thead>
+        <tbody id="expense-table-body">
+          <tr><td colspan="5"><div class="empty-state"><p>経費なし</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- CLOSING -->
+<div id="page-closing" class="page">
+  <div class="page-header">
+    <div class="page-title">日締め</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" onclick="exportCSV()">📄 CSV出力</button>
+      <button class="btn btn-success" onclick="doClosing()">✓ 日締め実行</button>
+    </div>
+  </div>
+  <div class="grid-3" style="margin-bottom:20px">
+    <div class="metric-card">
+      <div class="metric-label">売上合計</div>
+      <div class="metric-value accent" id="close-sales">¥0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">入金合計</div>
+      <div class="metric-value success" id="close-income">¥0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">報酬支払額</div>
+      <div class="metric-value warning" id="close-salary">¥0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">経費出金額</div>
+      <div class="metric-value danger" id="close-expenses">¥0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">現金残高</div>
+      <div class="metric-value" id="close-balance">¥0</div>
+    </div>
+    <div class="metric-card" id="rt300-diff-card" style="display:none">
+      <div class="metric-label">RT-300 差額</div>
+      <div class="metric-value" id="close-rt300-diff">---</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">本日の取引明細</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>時刻</th><th>種別</th><th>セラピスト</th><th>金額</th><th>メモ</th></tr>
+        </thead>
+        <tbody id="closing-table-body">
+          <tr><td colspan="5"><div class="empty-state"><p>取引なし</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div id="page-history" class="page">
+  <div class="page-header">
+    <div class="page-title">履歴確認</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchHistoryTab('therapist', this)">セラピスト別</div>
+    <div class="tab" onclick="switchHistoryTab('daily', this)">日別</div>
+    <div class="tab" onclick="switchHistoryTab('expense', this)">経費</div>
+  </div>
+
+  <!-- Therapist history -->
+  <div id="hist-therapist">
+    <div class="form-group" style="max-width:300px">
+      <label class="form-label">セラピスト選択</label>
+      <select id="hist-therapist-select" class="form-control" onchange="loadTherapistHistory()">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>日時</th><th>種別</th><th>金額</th><th>状況</th><th>メモ</th></tr></thead>
+          <tbody id="hist-therapist-body"><tr><td colspan="5"><div class="empty-state"><p>セラピストを選択してください</p></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily history -->
+  <div id="hist-daily" style="display:none">
+    <div class="form-group" style="max-width:200px">
+      <label class="form-label">日付選択</label>
+      <input type="date" id="hist-date-select" class="form-control" onchange="loadDailyHistory()">
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>時刻</th><th>種別</th><th>セラピスト</th><th>金額</th><th>メモ</th></tr></thead>
+          <tbody id="hist-daily-body"><tr><td colspan="5"><div class="empty-state"><p>日付を選択してください</p></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expense history -->
+  <div id="hist-expense" style="display:none">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:150px">
+        <label class="form-label">開始日</label>
+        <input type="date" id="hist-exp-from" class="form-control">
+      </div>
+      <div class="form-group" style="flex:1;min-width:150px">
+        <label class="form-label">終了日</label>
+        <input type="date" id="hist-exp-to" class="form-control">
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button class="btn btn-primary" onclick="loadExpenseHistory()">検索</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>日時</th><th>カテゴリ</th><th>金額</th><th>メモ</th></tr></thead>
+          <tbody id="hist-expense-body"><tr><td colspan="4"><div class="empty-state"><p>期間を選択して検索してください</p></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IPAD VIEW -->
+<div id="page-ipad" class="page">
+  <div class="page-header">
+    <div class="page-title">📱 セラピスト用画面 (iPad)</div>
+    <div class="text-muted text-sm">実際のURLをiPadで開いてください</div>
+  </div>
+  <div id="ipad-view">
+    <div class="ipad-header">
+      <h2>セラピスト入金</h2>
+      <p id="ipad-date-display"></p>
+    </div>
+    <div class="ipad-body">
+      <!-- Step 1: Select therapist -->
+      <div id="ipad-step-select">
+        <div style="font-size:14px;color:var(--text2);margin-bottom:16px;text-align:center">
+          あなたの名前を選んでください
+        </div>
+        <div class="therapist-select-grid" id="ipad-therapist-grid">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+      <!-- Step 2: Dashboard & actions -->
+      <div id="ipad-step-main" style="display:none">
+        <div style="font-size:18px;font-weight:600;margin-bottom:16px;text-align:center" id="ipad-selected-therapist"></div>
+        <div class="ipad-metric">
+          <div class="ipad-metric-label">本日の売上</div>
+          <div class="ipad-metric-value text-success" id="ipad-my-sales">¥0</div>
+        </div>
+        <div class="ipad-metric">
+          <div class="ipad-metric-label">支払報酬</div>
+          <div class="ipad-metric-value text-warning" id="ipad-my-salary">¥0</div>
+        </div>
+        <div class="ipad-metric" id="ipad-payment-status-row">
+          <div class="ipad-metric-label">入金状況</div>
+          <div id="ipad-payment-badge"></div>
+        </div>
+        <hr class="sep">
+        <button class="ipad-btn ipad-btn-primary" onclick="ipadStartPayment()" id="ipad-btn-start">💴 入金開始</button>
+        <button class="ipad-btn ipad-btn-success" onclick="ipadCompletePayment()" id="ipad-btn-complete" style="display:none">✅ 入金完了</button>
+        <button class="ipad-btn" style="background:var(--surface2);color:var(--text2)" onclick="ipadBack()">← 戻る</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- MODALS -->
+<!-- Add Therapist Modal -->
+<div class="modal-overlay" id="modal-add-therapist">
+  <div class="modal">
+    <div class="modal-title">セラピスト登録</div>
+    <div class="form-group">
+      <label class="form-label">名前</label>
+      <input type="text" id="new-therapist-name" class="form-control" placeholder="例: 山田 花子">
+    </div>
+    <div class="form-group">
+      <label class="form-label">電話番号（任意）</label>
+      <input type="text" id="new-therapist-phone" class="form-control" placeholder="090-xxxx-xxxx">
+    </div>
+    <div class="form-group">
+      <label class="form-label">報酬率（%）</label>
+      <input type="number" id="new-therapist-rate" class="form-control" placeholder="60" min="0" max="100">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveTherapist()">登録</button>
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal('modal-add-therapist')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Expense Modal -->
+<div class="modal-overlay" id="modal-add-expense">
+  <div class="modal">
+    <div class="modal-title">経費追加</div>
+    <div class="form-group">
+      <label class="form-label">カテゴリ</label>
+      <select id="exp-category" class="form-control">
+        <option value="ガソリン代">ガソリン代</option>
+        <option value="高速代">高速代</option>
+        <option value="広告費">広告費</option>
+        <option value="備品代">備品代</option>
+        <option value="雑費">雑費</option>
+        <option value="その他">その他</option>
+        <option value="カスタム">カスタム（下に入力）</option>
+      </select>
+    </div>
+    <div class="form-group" id="exp-custom-group" style="display:none">
+      <label class="form-label">カテゴリ名（カスタム）</label>
+      <input type="text" id="exp-custom-category" class="form-control" placeholder="カテゴリ名を入力">
+    </div>
+    <div class="form-group">
+      <label class="form-label">金額</label>
+      <input type="number" id="exp-amount" class="form-control" placeholder="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label">メモ</label>
+      <input type="text" id="exp-memo" class="form-control" placeholder="詳細メモ">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-danger" style="flex:1" onclick="saveExpense()">追加</button>
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal('modal-add-expense')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- FIREBASE SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+// ============================================================
+// 🔧 FIREBASE CONFIG — ここをあなたのFirebase設定に書き換えてください
+// ============================================================
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+// ============================================================
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ============================================================
+// STATE
+// ============================================================
+let currentUser = null;
+let therapists = [];
+let selectedTherapistForSales = null;
+let selectedTherapistForSalary = null;
+let ipadSelectedTherapist = null;
+
+// ============================================================
+// AUTH
+// ============================================================
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('auth-section').style.display = 'none';
+    document.getElementById('main-nav').style.display = 'flex';
+    document.getElementById('main-content').style.display = 'block';
+    document.getElementById('nav-user-info').textContent = user.email;
+    initApp();
+  } else {
+    document.getElementById('auth-section').style.display = 'block';
+    document.getElementById('main-nav').style.display = 'none';
+    document.getElementById('main-content').style.display = 'none';
+  }
+});
+
+async function doSignIn() {
+  const email = document.getElementById('auth-email').value;
+  const pass = document.getElementById('auth-password').value;
+  const msg = document.getElementById('auth-msg');
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e) {
+    msg.textContent = 'ログイン失敗: ' + e.message;
+    msg.style.color = 'var(--danger)';
+  }
+}
+
+async function doSignUp() {
+  const email = document.getElementById('auth-email').value;
+  const pass = document.getElementById('auth-password').value;
+  const msg = document.getElementById('auth-msg');
+  try {
+    await auth.createUserWithEmailAndPassword(email, pass);
+    msg.textContent = '登録完了！ログインしました。';
+    msg.style.color = 'var(--success)';
+  } catch(e) {
+    msg.textContent = '登録失敗: ' + e.message;
+    msg.style.color = 'var(--danger)';
+  }
+}
+
+function doSignOut() {
+  auth.signOut();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function initApp() {
+  const today = new Date();
+  document.getElementById('today-date').textContent = today.toLocaleDateString('ja-JP', {year:'numeric',month:'long',day:'numeric',weekday:'long'});
+  document.getElementById('ipad-date-display').textContent = today.toLocaleDateString('ja-JP');
+
+  const histDate = document.getElementById('hist-date-select');
+  histDate.value = today.toISOString().split('T')[0];
+
+  const expFrom = document.getElementById('hist-exp-from');
+  const expTo = document.getElementById('hist-exp-to');
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  expFrom.value = firstDay.toISOString().split('T')[0];
+  expTo.value = today.toISOString().split('T')[0];
+
+  document.getElementById('exp-category').addEventListener('change', function() {
+    document.getElementById('exp-custom-group').style.display = this.value === 'カスタム' ? 'block' : 'none';
+  });
+
+  loadTherapists();
+  loadDashboard();
+  loadExpenses();
+  loadClosingData();
+}
+
+// ============================================================
+// THERAPISTS
+// ============================================================
+async function loadTherapists() {
+  const snap = await db.collection('therapists').orderBy('name').get();
+  therapists = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderTherapistList();
+  renderTherapistSelects();
+  renderIpadTherapistGrid();
+}
+
+function renderTherapistList() {
+  const container = document.getElementById('therapist-list-container');
+  if (!therapists.length) {
+    container.innerHTML = '<div class="empty-state"><p>セラピストが登録されていません</p></div>';
+    return;
+  }
+  const html = `
+    <div class="therapist-grid">
+      ${therapists.map(t => `
+        <div class="therapist-card ${t.active===false?'inactive':''}">
+          <div class="t-name">${t.name}</div>
+          ${t.phone ? `<div class="t-meta">📞 ${t.phone}</div>` : ''}
+          <div class="t-meta">報酬率: ${t.rate||60}%</div>
+          <div class="flex gap-8" style="margin-top:8px">
+            <button class="btn btn-outline btn-sm" onclick="toggleTherapistStatus('${t.id}','${t.name}',${t.active!==false})">
+              ${t.active===false?'復帰':'退店'}
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteTherapist('${t.id}','${t.name}')">削除</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  container.innerHTML = html;
+}
+
+function renderTherapistSelects() {
+  const activeTherapists = therapists.filter(t => t.active !== false);
+  const cards = activeTherapists.map(t => `
+    <div class="therapist-card" id="sales-t-${t.id}" onclick="selectTherapistForSales('${t.id}','${t.name}')">
+      <div class="t-name">${t.name}</div>
+    </div>
+  `).join('');
+  document.getElementById('sales-therapist-select').innerHTML = `<div class="therapist-grid">${cards}</div>`;
+
+  const cards2 = activeTherapists.map(t => `
+    <div class="therapist-card" id="salary-t-${t.id}" onclick="selectTherapistForSalary('${t.id}','${t.name}')">
+      <div class="t-name">${t.name}</div>
+    </div>
+  `).join('');
+  document.getElementById('salary-therapist-select').innerHTML = `<div class="therapist-grid">${cards2}</div>`;
+
+  const opts = activeTherapists.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('hist-therapist-select').innerHTML = '<option value="">選択してください</option>' + opts;
+}
+
+function renderIpadTherapistGrid() {
+  const activeTherapists = therapists.filter(t => t.active !== false);
+  const html = activeTherapists.map(t => `
+    <div class="therapist-select-item" onclick="ipadSelectTherapist('${t.id}','${t.name}')">
+      ${t.name}
+    </div>
+  `).join('');
+  document.getElementById('ipad-therapist-grid').innerHTML = html || '<div style="color:var(--text3)">セラピストが登録されていません</div>';
+}
+
+function selectTherapistForSales(id, name) {
+  selectedTherapistForSales = {id, name};
+  document.querySelectorAll('[id^="sales-t-"]').forEach(el => el.classList.remove('selected'));
+  document.getElementById('sales-t-'+id).classList.add('selected');
+  document.getElementById('sales-selected-name').textContent = name;
+  document.getElementById('sales-selected-name').style.color = 'var(--text)';
+}
+
+function selectTherapistForSalary(id, name) {
+  selectedTherapistForSalary = {id, name};
+  document.querySelectorAll('[id^="salary-t-"]').forEach(el => el.classList.remove('selected'));
+  document.getElementById('salary-t-'+id).classList.add('selected');
+  document.getElementById('salary-selected-name').textContent = name;
+  document.getElementById('salary-selected-name').style.color = 'var(--text)';
+}
+
+function openAddTherapistModal() {
+  document.getElementById('new-therapist-name').value = '';
+  document.getElementById('new-therapist-phone').value = '';
+  document.getElementById('new-therapist-rate').value = '60';
+  document.getElementById('modal-add-therapist').classList.add('open');
+}
+
+async function saveTherapist() {
+  const name = document.getElementById('new-therapist-name').value.trim();
+  if (!name) { showToast('名前を入力してください', 'error'); return; }
+  const phone = document.getElementById('new-therapist-phone').value.trim();
+  const rate = parseInt(document.getElementById('new-therapist-rate').value) || 60;
+  try {
+    await db.collection('therapists').add({ name, phone, rate, active: true, createdAt: new Date() });
+    closeModal('modal-add-therapist');
+    showToast(name + ' を登録しました', 'success');
+    await loadTherapists();
+  } catch(e) {
+    showToast('エラー: ' + e.message, 'error');
+  }
+}
+
+async function toggleTherapistStatus(id, name, isActive) {
+  if (!confirm(`${name} を${isActive?'退店':'復帰'}させますか？`)) return;
+  await db.collection('therapists').doc(id).update({ active: !isActive });
+  showToast(`${name} を${isActive?'退店':'復帰'}しました`);
+  loadTherapists();
+}
+
+async function deleteTherapist(id, name) {
+  if (!confirm(`${name} を削除しますか？取引データは残ります。`)) return;
+  await db.collection('therapists').doc(id).delete();
+  showToast(`${name} を削除しました`);
+  loadTherapists();
+}
+
+// ============================================================
+// SALES
+// ============================================================
+async function registerSales() {
+  if (!selectedTherapistForSales) { showToast('セラピストを選択してください', 'error'); return; }
+  const amount = parseInt(document.getElementById('sales-amount').value);
+  if (!amount || amount <= 0) { showToast('金額を入力してください', 'error'); return; }
+  const memo = document.getElementById('sales-memo').value;
+  const paymentStatus = document.getElementById('sales-payment-status').value;
+
+  try {
+    await db.collection('transactions').add({
+      type: 'sales',
+      therapistId: selectedTherapistForSales.id,
+      therapistName: selectedTherapistForSales.name,
+      amount,
+      memo,
+      paymentStatus,
+      date: new Date(),
+      createdAt: new Date()
+    });
+    showToast(`${selectedTherapistForSales.name} の売上 ¥${amount.toLocaleString()} を登録しました`, 'success');
+    document.getElementById('sales-amount').value = '';
+    document.getElementById('sales-memo').value = '';
+    loadDashboard();
+    loadClosingData();
+  } catch(e) {
+    showToast('エラー: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+// SALARY
+// ============================================================
+async function registerSalary() {
+  if (!selectedTherapistForSalary) { showToast('セラピストを選択してください', 'error'); return; }
+  const amount = parseInt(document.getElementById('salary-amount').value);
+  if (!amount || amount <= 0) { showToast('金額を入力してください', 'error'); return; }
+  const method = document.getElementById('salary-method').value;
+  const memo = document.getElementById('salary-memo').value;
+
+  try {
+    await db.collection('transactions').add({
+      type: 'salary',
+      therapistId: selectedTherapistForSalary.id,
+      therapistName: selectedTherapistForSalary.name,
+      amount,
+      method,
+      memo,
+      date: new Date(),
+      createdAt: new Date()
+    });
+    showToast(`${selectedTherapistForSalary.name} の給料 ¥${amount.toLocaleString()} を登録しました`, 'success');
+    document.getElementById('salary-amount').value = '';
+    document.getElementById('salary-memo').value = '';
+    loadDashboard();
+    loadClosingData();
+  } catch(e) {
+    showToast('エラー: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+// EXPENSES
+// ============================================================
+function openAddExpenseModal() {
+  document.getElementById('exp-amount').value = '';
+  document.getElementById('exp-memo').value = '';
+  document.getElementById('exp-category').value = 'ガソリン代';
+  document.getElementById('exp-custom-group').style.display = 'none';
+  document.getElementById('modal-add-expense').classList.add('open');
+}
+
+async function saveExpense() {
+  let category = document.getElementById('exp-category').value;
+  if (category === 'カスタム') {
+    category = document.getElementById('exp-custom-category').value.trim();
+    if (!category) { showToast('カテゴリ名を入力してください', 'error'); return; }
+  }
+  const amount = parseInt(document.getElementById('exp-amount').value);
+  if (!amount || amount <= 0) { showToast('金額を入力してください', 'error'); return; }
+  const memo = document.getElementById('exp-memo').value;
+
+  try {
+    await db.collection('expenses').add({ category, amount, memo, date: new Date(), createdAt: new Date() });
+    closeModal('modal-add-expense');
+    showToast(`経費 ¥${amount.toLocaleString()} を登録しました`, 'success');
+    loadExpenses();
+    loadClosingData();
+  } catch(e) {
+    showToast('エラー: ' + e.message, 'error');
+  }
+}
+
+async function loadExpenses() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+  const snap = await db.collection('expenses')
+    .orderBy('date', 'desc').limit(100).get();
+  const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const todayExps = all.filter(e => {
+    const d = e.date.toDate ? e.date.toDate() : new Date(e.date);
+    return d >= today && d < tomorrow;
+  });
+  const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthExps = all.filter(e => {
+    const d = e.date.toDate ? e.date.toDate() : new Date(e.date);
+    return d >= thisMonth;
+  });
+
+  const todayTotal = todayExps.reduce((s,e) => s+e.amount, 0);
+  const monthTotal = monthExps.reduce((s,e) => s+e.amount, 0);
+  document.getElementById('exp-today-total').textContent = '¥'+todayTotal.toLocaleString();
+  document.getElementById('exp-month-total').textContent = '¥'+monthTotal.toLocaleString();
+
+  const tbody = document.getElementById('expense-table-body');
+  if (!all.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>経費なし</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = all.map(e => {
+    const d = e.date.toDate ? e.date.toDate() : new Date(e.date);
+    return `<tr>
+      <td>${d.toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+      <td><span class="badge badge-warning">${e.category}</span></td>
+      <td class="text-danger font-mono">-¥${e.amount.toLocaleString()}</td>
+      <td class="text-muted">${e.memo||''}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="deleteExpense('${e.id}')">削除</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function deleteExpense(id) {
+  if (!confirm('この経費を削除しますか？')) return;
+  await db.collection('expenses').doc(id).delete();
+  showToast('経費を削除しました');
+  loadExpenses(); loadClosingData();
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function loadDashboard() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+
+  const snap = await db.collection('transactions')
+    .where('date', '>=', today)
+    .where('date', '<', tomorrow)
+    .get();
+  const txs = snap.docs.map(d => d.data());
+
+  const sales = txs.filter(t=>t.type==='sales').reduce((s,t)=>s+t.amount,0);
+  const income = txs.filter(t=>t.type==='sales'&&t.paymentStatus==='paid').reduce((s,t)=>s+t.amount,0);
+  const salary = txs.filter(t=>t.type==='salary').reduce((s,t)=>s+t.amount,0);
+
+  const expSnap = await db.collection('expenses')
+    .where('date','>=',today).where('date','<',tomorrow).get();
+  const expenses = expSnap.docs.reduce((s,d)=>s+d.data().amount,0);
+
+  const balance = income - salary - expenses;
+  document.getElementById('dash-sales').textContent = '¥'+sales.toLocaleString();
+  document.getElementById('dash-income').textContent = '¥'+income.toLocaleString();
+  document.getElementById('dash-salary').textContent = '¥'+salary.toLocaleString();
+  document.getElementById('dash-balance').textContent = '¥'+balance.toLocaleString();
+  const balEl = document.getElementById('dash-balance');
+  balEl.className = 'metric-value ' + (balance>=0?'success':'danger');
+
+  // Top therapists
+  const byTherapist = {};
+  txs.filter(t=>t.type==='sales').forEach(t => {
+    byTherapist[t.therapistName] = (byTherapist[t.therapistName]||0)+t.amount;
+  });
+  const sorted = Object.entries(byTherapist).sort((a,b)=>b[1]-a[1]);
+  const topEl = document.getElementById('dash-top-therapists');
+  if (!sorted.length) {
+    topEl.innerHTML = '<div class="empty-state"><p>データなし</p></div>';
+  } else {
+    topEl.innerHTML = sorted.map(([name,amt],i) => `
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span><span style="color:var(--text3);margin-right:8px">${i+1}</span>${name}</span>
+        <span class="font-mono text-success">¥${amt.toLocaleString()}</span>
+      </div>
+    `).join('');
+  }
+
+  // Recent transactions
+  const recent = txs.slice(-5).reverse();
+  const recentEl = document.getElementById('dash-recent-transactions');
+  if (!recent.length) {
+    recentEl.innerHTML = '<div class="empty-state"><p>取引なし</p></div>';
+  } else {
+    recentEl.innerHTML = recent.map(t => {
+      const d = t.date.toDate ? t.date.toDate() : new Date(t.date);
+      const typeLabel = {sales:'売上',salary:'給料',income:'入金'}[t.type]||t.type;
+      const cls = t.type==='salary'?'text-warning':'text-success';
+      return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span><span class="text-muted text-sm">${d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}</span>　${t.therapistName||''}　<span class="badge badge-info">${typeLabel}</span></span>
+        <span class="font-mono ${cls}">¥${t.amount.toLocaleString()}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ============================================================
+// CLOSING
+// ============================================================
+async function loadClosingData() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+
+  const snap = await db.collection('transactions')
+    .where('date','>=',today).where('date','<',tomorrow)
+    .orderBy('date').get();
+  const txs = snap.docs.map(d=>d.data());
+
+  const expSnap = await db.collection('expenses')
+    .where('date','>=',today).where('date','<',tomorrow).get();
+  const exps = expSnap.docs.map(d=>d.data());
+
+  const sales = txs.filter(t=>t.type==='sales').reduce((s,t)=>s+t.amount,0);
+  const income = txs.filter(t=>t.type==='sales'&&t.paymentStatus==='paid').reduce((s,t)=>s+t.amount,0);
+  const salary = txs.filter(t=>t.type==='salary').reduce((s,t)=>s+t.amount,0);
+  const expenses = exps.reduce((s,e)=>s+e.amount,0);
+  const balance = income - salary - expenses;
+
+  document.getElementById('close-sales').textContent = '¥'+sales.toLocaleString();
+  document.getElementById('close-income').textContent = '¥'+income.toLocaleString();
+  document.getElementById('close-salary').textContent = '¥'+salary.toLocaleString();
+  document.getElementById('close-expenses').textContent = '¥'+expenses.toLocaleString();
+  document.getElementById('close-balance').textContent = '¥'+balance.toLocaleString();
+  document.getElementById('close-balance').className = 'metric-value ' + (balance>=0?'success':'danger');
+
+  const tbody = document.getElementById('closing-table-body');
+  const allItems = [
+    ...txs.map(t => ({ ...t, _type:'tx' })),
+    ...exps.map(e => ({ ...e, _type:'exp' }))
+  ].sort((a,b) => {
+    const da = a.date.toDate ? a.date.toDate() : new Date(a.date);
+    const db_ = b.date.toDate ? b.date.toDate() : new Date(b.date);
+    return da - db_;
+  });
+
+  if (!allItems.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>取引なし</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = allItems.map(item => {
+    const d = item.date.toDate ? item.date.toDate() : new Date(item.date);
+    const timeStr = d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    if (item._type === 'exp') {
+      return `<tr>
+        <td>${timeStr}</td>
+        <td><span class="badge badge-danger">経費</span></td>
+        <td class="text-muted">${item.category}</td>
+        <td class="text-danger font-mono">-¥${item.amount.toLocaleString()}</td>
+        <td class="text-muted">${item.memo||''}</td>
+      </tr>`;
+    }
+    const typeMap = {sales:'売上',salary:'給料'};
+    const cls = item.type==='salary'?'text-warning':'text-success';
+    const prefix = item.type==='salary'?'-':'';
+    const badgeCls = item.type==='salary'?'badge-warning':'badge-info';
+    return `<tr>
+      <td>${timeStr}</td>
+      <td><span class="badge ${badgeCls}">${typeMap[item.type]||item.type}</span></td>
+      <td>${item.therapistName||''}</td>
+      <td class="${cls} font-mono">${prefix}¥${item.amount.toLocaleString()}</td>
+      <td class="text-muted">${item.memo||''}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function doClosing() {
+  if (!confirm('日締めを実行しますか？')) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const snap = await db.collection('transactions')
+    .where('date','>=',today).get();
+  const txs = snap.docs.map(d=>d.data());
+  const expSnap = await db.collection('expenses').where('date','>=',today).get();
+  const exps = expSnap.docs.map(d=>d.data());
+
+  const sales = txs.filter(t=>t.type==='sales').reduce((s,t)=>s+t.amount,0);
+  const income = txs.filter(t=>t.type==='sales'&&t.paymentStatus==='paid').reduce((s,t)=>s+t.amount,0);
+  const salary = txs.filter(t=>t.type==='salary').reduce((s,t)=>s+t.amount,0);
+  const expenses = exps.reduce((s,e)=>s+e.amount,0);
+
+  await db.collection('closings').add({
+    date: today, sales, income, salary, expenses,
+    balance: income - salary - expenses,
+    closedAt: new Date(),
+    closedBy: currentUser.email
+  });
+  showToast('日締めが完了しました', 'success');
+}
+
+// ============================================================
+// CSV EXPORT
+// ============================================================
+async function exportCSV() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+  const snap = await db.collection('transactions')
+    .where('date','>=',today).where('date','<',tomorrow).get();
+  const txs = snap.docs.map(d=>d.data());
+  const expSnap = await db.collection('expenses')
+    .where('date','>=',today).where('date','<',tomorrow).get();
+  const exps = expSnap.docs.map(d=>d.data());
+
+  let csv = '\uFEFF日時,種別,セラピスト,金額,メモ\n';
+  [...txs,...exps.map(e=>({...e,type:'expense',therapistName:e.category}))].forEach(t=>{
+    const d = t.date.toDate ? t.date.toDate() : new Date(t.date);
+    const typeMap = {sales:'売上',salary:'給料',expense:'経費'};
+    csv += `${d.toLocaleString('ja-JP')},${typeMap[t.type]||t.type},${t.therapistName||''},${t.amount},"${t.memo||''}"\n`;
+  });
+
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cash_${today.toISOString().split('T')[0]}.csv`;
+  a.click();
+  showToast('CSVを出力しました', 'success');
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function switchHistoryTab(tab, el) {
+  document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['therapist','daily','expense'].forEach(t => {
+    document.getElementById('hist-'+t).style.display = t===tab?'block':'none';
+  });
+}
+
+async function loadTherapistHistory() {
+  const tid = document.getElementById('hist-therapist-select').value;
+  if (!tid) return;
+  const snap = await db.collection('transactions')
+    .where('therapistId','==',tid)
+    .orderBy('date','desc').limit(100).get();
+  const txs = snap.docs.map(d=>d.data());
+  const tbody = document.getElementById('hist-therapist-body');
+  if (!txs.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>データなし</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = txs.map(t => {
+    const d = t.date.toDate ? t.date.toDate() : new Date(t.date);
+    const typeMap = {sales:'売上',salary:'給料'};
+    const cls = t.type==='salary'?'text-warning':'text-success';
+    const badgeCls = t.type==='salary'?'badge-warning':'badge-info';
+    const statusBadge = t.paymentStatus==='paid'?'<span class="badge badge-success">入金済</span>':'<span class="badge badge-danger">未入金</span>';
+    return `<tr>
+      <td>${d.toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+      <td><span class="badge ${badgeCls}">${typeMap[t.type]||t.type}</span></td>
+      <td class="${cls} font-mono">¥${t.amount.toLocaleString()}</td>
+      <td>${t.type==='sales'?statusBadge:''}</td>
+      <td class="text-muted">${t.memo||''}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadDailyHistory() {
+  const dateStr = document.getElementById('hist-date-select').value;
+  if (!dateStr) return;
+  const start = new Date(dateStr); start.setHours(0,0,0,0);
+  const end = new Date(start); end.setDate(end.getDate()+1);
+  const snap = await db.collection('transactions')
+    .where('date','>=',start).where('date','<',end)
+    .orderBy('date').get();
+  const txs = snap.docs.map(d=>d.data());
+  const tbody = document.getElementById('hist-daily-body');
+  if (!txs.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>データなし</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = txs.map(t => {
+    const d = t.date.toDate ? t.date.toDate() : new Date(t.date);
+    const typeMap = {sales:'売上',salary:'給料'};
+    const cls = t.type==='salary'?'text-warning':'text-success';
+    const badgeCls = t.type==='salary'?'badge-warning':'badge-info';
+    return `<tr>
+      <td>${d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}</td>
+      <td><span class="badge ${badgeCls}">${typeMap[t.type]||t.type}</span></td>
+      <td>${t.therapistName||''}</td>
+      <td class="${cls} font-mono">¥${t.amount.toLocaleString()}</td>
+      <td class="text-muted">${t.memo||''}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadExpenseHistory() {
+  const from = new Date(document.getElementById('hist-exp-from').value); from.setHours(0,0,0,0);
+  const to = new Date(document.getElementById('hist-exp-to').value); to.setHours(23,59,59,999);
+  const snap = await db.collection('expenses')
+    .where('date','>=',from).where('date','<=',to)
+    .orderBy('date','desc').get();
+  const exps = snap.docs.map(d=>d.data());
+  const tbody = document.getElementById('hist-expense-body');
+  if (!exps.length) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><p>データなし</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = exps.map(e => {
+    const d = e.date.toDate ? e.date.toDate() : new Date(e.date);
+    return `<tr>
+      <td>${d.toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+      <td><span class="badge badge-warning">${e.category}</span></td>
+      <td class="text-danger font-mono">-¥${e.amount.toLocaleString()}</td>
+      <td class="text-muted">${e.memo||''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// IPAD
+// ============================================================
+async function ipadSelectTherapist(id, name) {
+  ipadSelectedTherapist = {id, name};
+  document.getElementById('ipad-selected-therapist').textContent = name + ' さん';
+  document.getElementById('ipad-step-select').style.display = 'none';
+  document.getElementById('ipad-step-main').style.display = 'block';
+  await loadIpadData(id);
+}
+
+async function loadIpadData(id) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+  const snap = await db.collection('transactions')
+    .where('therapistId','==',id)
+    .where('date','>=',today).where('date','<',tomorrow).get();
+  const txs = snap.docs.map(d=>d.data());
+  const sales = txs.filter(t=>t.type==='sales').reduce((s,t)=>s+t.amount,0);
+  const salary = txs.filter(t=>t.type==='salary').reduce((s,t)=>s+t.amount,0);
+  document.getElementById('ipad-my-sales').textContent = '¥'+sales.toLocaleString();
+  document.getElementById('ipad-my-salary').textContent = '¥'+salary.toLocaleString();
+
+  const paid = txs.some(t=>t.type==='sales'&&t.paymentStatus==='paid');
+  document.getElementById('ipad-payment-badge').innerHTML =
+    paid ? '<span class="badge badge-success">入金済み</span>' : '<span class="badge badge-danger">未入金</span>';
+  document.getElementById('ipad-btn-start').style.display = paid ? 'none' : 'block';
+  document.getElementById('ipad-btn-complete').style.display = 'none';
+}
+
+async function ipadStartPayment() {
+  document.getElementById('ipad-btn-start').style.display = 'none';
+  document.getElementById('ipad-btn-complete').style.display = 'block';
+  showToast('入金を開始しました。完了したら「入金完了」を押してください');
+}
+
+async function ipadCompletePayment() {
+  if (!ipadSelectedTherapist) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+  const snap = await db.collection('transactions')
+    .where('therapistId','==',ipadSelectedTherapist.id)
+    .where('date','>=',today).where('date','<',tomorrow)
+    .where('type','==','sales').get();
+  const batch = db.batch();
+  snap.docs.forEach(doc => {
+    batch.update(doc.ref, { paymentStatus: 'paid' });
+  });
+  await batch.commit();
+  showToast('入金完了しました！', 'success');
+  await loadIpadData(ipadSelectedTherapist.id);
+  document.getElementById('ipad-btn-complete').style.display = 'none';
+}
+
+function ipadBack() {
+  document.getElementById('ipad-step-select').style.display = 'block';
+  document.getElementById('ipad-step-main').style.display = 'none';
+  ipadSelectedTherapist = null;
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page).classList.add('active');
+  if (page==='dashboard') loadDashboard();
+  if (page==='closing') loadClosingData();
+  if (page==='expenses') loadExpenses();
+  if (page==='therapists') loadTherapists();
+  if (page==='sales'||page==='salary') renderTherapistSelects();
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type?' '+type:'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+</script>
+</body>
+</html>
